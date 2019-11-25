@@ -1,0 +1,47 @@
+/*
+Quark Function Documentation (*.qk):
+
+Functions look just like they do in SV for the most part, but with the notable
+exception that you can parameterize functions.
+*/
+
+// You write a function like this
+function bit [8] add(bit [8] a, b) {
+    return a + b; // You just return like normal
+}
+
+// You can also parameterize a function
+function<W> bit [W] add(bit [W] a, b) {
+    return a + b;
+}
+
+// Any fields passed to the struct are completely "copied" so that modifications
+// in the scope of the function are not reflected in the outside scope
+
+struct add_t {
+    bit [8] a, b, c;
+}
+
+function bit [8] add(add_t add) {
+    add.c = add.a + add.b;
+    return add.c;
+}
+
+add_t my_add = {a: 'h1, b: 'h2, c: 'h0};
+bit [8] result = add(my_add); // my_add.c is still 'h0
+
+
+// If you want a function to use a parameterized struct, you can use the struct
+// parameters directly, so long as they don't conflict with already named
+// parameters of the function.
+
+// This allows functions to be parameterized based on structs without confusing
+// them as being member functions, since they lack access to the struct scope
+
+struct param_struct_t<W> {
+    bit [W] a;
+}
+
+function bit [W] implicit_params_func(param_struct_t<W> p) {
+    return p.a;
+}

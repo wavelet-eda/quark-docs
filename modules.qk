@@ -1,0 +1,82 @@
+/*
+Quark Module Documentation (*.qk):
+
+Modules are smallest form of logic that can be constructed as the top level of a
+design. Modules can be connected together through a variety of methods, but a
+module should really be thought of as a hardware thread.
+
+For instance, instead of having blocks like always_comb and assign statements,
+the entire module is single linear control flow. There are obvious limitations
+in describing loops of any sort here, but a module is not where those should be
+written.
+
+*/
+
+module my_simple_module (
+    // Everything has to have a specific type (no inferred types) and it is
+    // either an input, output, or parameter
+    parameter bit [32] WIDTH, // Parameters are in same section
+    // Parameters can be also be created that depend on other parameters but
+    // cannot be explicity set by the user
+    parameter fixed bit [32] ADDR_WIDTH = clog2(WIDTH),
+    input bit [WIDTH] a, b,
+    output bit [WIDTH] c, // Trailing comma allowed
+) {
+    c = a + b; // Just do the assignment right here
+}
+
+// You can also call one module inside of another module, just like a function
+module my_nested_module (
+    parameter bit [32] WIDTH,
+    input bit [WIDTH] a, b, c, d,
+    output bit [WIDTH] e,
+) {
+    bit [WIDTH] temp1, temp2;
+    my_simple_module(WIDTH, a, b, temp1);
+    my_simple_module(WIDTH, c, d, temp2);
+    my_simple_module(WIDTH, temp1, temp2, e);
+}
+
+// While the unnamed passing style is normal and generally acceptable for
+// functions, it becomes incredibly error-prone when you have a lot of values
+// For this reason, named port assignments just like SV are supported
+module my_nested_explicit_module (
+    parameter bit [32] WIDTH,
+    input bit [WIDTH] a, b, c, d,
+    output bit [WIDTH] e,
+) {
+    bit [WIDTH] temp1, temp2;
+    // WIDTH is passed by name matching (just like SV) and the inputs/outputs
+    // are passed explicitly in both source and destination names
+    my_simple_module(.WIDTH, .a(a), .b(b), .c(temp1));
+    my_simple_module(.WIDTH, .a(c), .b(d), .c(temp2));
+    // Of note here is that these modules are still like function calls, as in 
+    // their ordering matters. If you called the module doing a + b after the
+    // module doing temp1 + temp2 then you will have different behavior
+    my_simple_module(.WIDTH, .a(temp1), .b(temp2), .c(e));
+}
+
+// Modules can have state (unlike functions) so there may be cases where you 
+// have a module that you want a single explicit result from but a function 
+// won't suffice. In that case you can define a return type of a module, but it
+// otherwise cannot have outputs
+
+module bit [WIDTH] my_functional_module ( // You could use any parameter here
+    parameter bit [32] WIDTH,
+    input bit [WIDTH] a, b, // You still have to write input (???)
+    // No outputs allowed
+) {
+    // We'll get to actually having state in a bit, just hang on
+    return a + b;
+}
+
+module my_nested_functional_module (
+    parameter bit [32] WIDTH,
+    input bit [WIDTH] a, b, c, d,
+    output bit [WIDTH] e,
+) {
+    // This is way shorter lol
+    e = my_functional_module(WIDTH, a, b) + my_functional_module(WIDTH, c, d);
+}
+
+// Gonna write about registers/latches after dinner lol

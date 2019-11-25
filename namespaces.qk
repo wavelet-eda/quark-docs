@@ -1,0 +1,51 @@
+/*
+Quark Namespace Documentation (*.qk):
+
+First all projects need to have a manifest.yaml at the top level somewhere or
+the tool needs to be explicity to run in the current directory as the top level
+- The directory structure will be searched upwards until one is found by the 
+  build tool
+- If it is not found in the current directory but is found above a warning will
+  be issued
+- This defines all the library project inclusions, standard cell inclusions,
+  legacy RTL, certificates, etc. (tbd)
+
+Next all files are assumed to have their own namespace defined by the filename
+and directory structure
+- This is handled just like Python 3 (running theme) *
+- Imports can be wildcarded
+
+Python 3 does something like this
+    from directory.file import Something // absolute
+    from .file import Something // relative
+
+Quark does it something like this
+    import directory.file::Something;
+    import .file::Something;
+
+Imports are only scoped to the file you are working inside of and do not extend
+outside of the current file
+
+Imports are for any contents of the file, whether it is types, modules,
+interfaces or whatever, unlike where modules transcend packages in
+SystemVerilog.
+
+* The running theme is to leverage well thought out and debated lessons from
+  other programming languages with similar problems, and not just making this
+  up on the fly.
+*/
+
+// Wildcards work just like SystemVerilog or Python
+import lib.fpga_utils::*;
+// Multiple specific imports can be put together in comma separated list
+import lib.other_file::(CoolModule, NotSoCoolModule);
+// Imports from the same folder
+import .same_dir_file::MyCustomType;
+// You cannot list multiple imports from different folders on the same line
+
+// QUESTION: Imports can only be done at top level???
+
+// Could be imported as namespaces.Test
+module Test() { // Module syntax in flux right now
+
+}

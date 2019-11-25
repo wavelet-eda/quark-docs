@@ -1,0 +1,15 @@
+/*
+Quark Extension Documentation (*.qk):
+
+Quark supports two different kinds of language extension. First you can connect
+to an external netlist, whether that be Verilog, VHDL, or a raw netlist like
+an EDIF.
+
+Second you can invoke Python functions in the midst of your native Quark code,
+where these functions can modify the AST to perform macros or add event handlers
+for say simulation specific behaviors. These functions are called by using
+
+@func_name(parameter, bit_vector, ...)
+
+*/
+
