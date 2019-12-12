@@ -16,12 +16,10 @@ and directory structure
 - Imports can be wildcarded
 
 Python 3 does something like this
-    from directory.file import Something // absolute
-    from .file import Something // relative
+    from directory.file import Something
 
 Quark does it something like this
     import directory.file::Something;
-    import .file::Something;
 
 Imports are only scoped to the file you are working inside of and do not extend
 outside of the current file
@@ -35,17 +33,21 @@ SystemVerilog.
   up on the fly.
 */
 
+// You also have to define at the top of any file a declaration of the version
+// of the Quark syntax being complied
+quark(v0.1); // Specific version and subversion
+quark(v0); // Specific version
+quark(); // Non-specific version
+
 // Wildcards work just like SystemVerilog or Python
 import lib.fpga_utils::*;
 // Multiple specific imports can be put together in comma separated list
 import lib.other_file::(CoolModule, NotSoCoolModule);
-// Imports from the same folder
-import .same_dir_file::MyCustomType;
 // You cannot list multiple imports from different folders on the same line
 
 // QUESTION: Imports can only be done at top level???
 
 // Could be imported as namespaces.Test
-module Test() { // Module syntax in flux right now
+module Test() {
 
 }

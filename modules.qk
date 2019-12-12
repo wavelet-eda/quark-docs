@@ -6,19 +6,26 @@ design. Modules can be connected together through a variety of methods, but a
 module should really be thought of as a hardware thread.
 
 For instance, instead of having blocks like always_comb and assign statements,
-the entire module is single linear control flow. There are obvious limitations
-in describing loops of any sort here, but a module is not where those should be
-written.
+the entire module is single linear control flow. You can also instantiate
+modules inside of other modules but "calling a module" works a little different
+than it does in either SV or just calling a state-less function.
 
+Warnings are issued if a future assignment is used in a module using other
+modules that do not have all of their outputs registered.
 */
 
 module my_simple_module (
+    // Parameters have to come first
+
     // Everything has to have a specific type (no inferred types) and it is
     // either an input, output, or parameter
     parameter bit [32] WIDTH, // Parameters are in same section
+
     // Parameters can be also be created that depend on other parameters but
     // cannot be explicity set by the user
     parameter fixed bit [32] ADDR_WIDTH = clog2(WIDTH),
+
+    // Inputs and outputs can be mixed
     input bit [WIDTH] a, b,
     output bit [WIDTH] c, // Trailing comma allowed
 ) {
@@ -37,6 +44,24 @@ module my_nested_module (
     my_simple_module(WIDTH, temp1, temp2, e);
 }
 
+// You can list out the module parameters ahead of time and use the module
+// multiple times as well
+module my_nested_module (
+    parameter bit [32] WIDTH,
+    input bit [WIDTH] a, b, c, d,
+    output bit [WIDTH] e,
+) {
+    bit [WIDTH] temp1, temp2;
+    
+    // Parameter name matching works the same inside <> as ()
+    my_simple_module<.WIDTH> my_parameterized_module;
+
+    // We got the parameters out of the way
+    my_parameterized_module(a, b, temp1);
+    my_parameterized_module(c, d, temp2);
+    my_parameterized_module(temp1, temp2, e);
+}
+
 // While the unnamed passing style is normal and generally acceptable for
 // functions, it becomes incredibly error-prone when you have a lot of values
 // For this reason, named port assignments just like SV are supported
@@ -45,7 +70,9 @@ module my_nested_explicit_module (
     input bit [WIDTH] a, b, c, d,
     output bit [WIDTH] e,
 ) {
-    bit [WIDTH] temp1, temp2;
+    bit [WIDTH] temp1, temp2; // All variables default to zero (you cannot infer
+    // a latch)
+
     // WIDTH is passed by name matching (just like SV) and the inputs/outputs
     // are passed explicitly in both source and destination names
     my_simple_module(.WIDTH, .a(a), .b(b), .c(temp1));
@@ -56,27 +83,150 @@ module my_nested_explicit_module (
     my_simple_module(.WIDTH, .a(temp1), .b(temp2), .c(e));
 }
 
-// Modules can have state (unlike functions) so there may be cases where you 
-// have a module that you want a single explicit result from but a function 
-// won't suffice. In that case you can define a return type of a module, but it
-// otherwise cannot have outputs
-
-module bit [WIDTH] my_functional_module ( // You could use any parameter here
-    parameter bit [32] WIDTH,
-    input bit [WIDTH] a, b, // You still have to write input (???)
-    // No outputs allowed
-) {
-    // We'll get to actually having state in a bit, just hang on
-    return a + b;
-}
-
-module my_nested_functional_module (
+// You can list out the module parameters ahead of time and use the module
+// multiple times as well
+module my_nested_module (
     parameter bit [32] WIDTH,
     input bit [WIDTH] a, b, c, d,
     output bit [WIDTH] e,
 ) {
-    // This is way shorter lol
-    e = my_functional_module(WIDTH, a, b) + my_functional_module(WIDTH, c, d);
+    bit [WIDTH] temp1, temp2;
+    
+    // Parameter name matching works the same inside <> as () but you can only
+    // list parameters, but you have to define all of the parameters
+    typedef my_simple_module<.WIDTH> my_parameterized_module;
+
+    // We got the parameters out of the way
+    my_parameterized_module(a, b, temp1);
+    my_parameterized_module(c, d, temp2);
+    my_parameterized_module(temp1, temp2, e);
 }
 
-// Gonna write about registers/latches after dinner lol
+// You can also pass the inputs and outputs of a module through more of a
+// function call syntax that allows for modules to be called like functions
+module my_typed_module (
+    parameter bit [32] WIDTH,
+    input bit [WIDTH] a, b, c, d,
+    output bit [WIDTH] e,
+) {
+    bit [WIDTH] temp1, temp2;
+    
+    // Parameter name matching works the same inside <> as ()
+    typedef my_simple_module<.WIDTH> my_parameterized_module;
+
+    // Left hand assignment syntax, with explict struct naming
+    {c: temp1} = my_parameterized_module({a: a, b: b});
+
+    // Left hand assignment syntax, with implicit list naming
+    temp2 = my_parameterized_module(c, d);
+
+    // You can also pass the parameters with the signals
+    e = my_simple_module(WIDTH, temp1, temp2);
+}
+
+// The collection of inputs or outputs that make up a module also form an
+// implicitly defined type and can be used inline in code
+module my_typed_module2 (
+    parameter bit [32] WIDTH,
+    input bit [WIDTH] a, b, c, d,
+    output bit [WIDTH] e,
+) {
+    bit [WIDTH] temp1, temp2;
+    
+    // Parameter name matching works the same inside <> as ()
+    typedef my_simple_module<.WIDTH> my_parameterized_module;
+
+    // Left hand assignment syntax, with explict struct naming
+    input<my_parameterized_module> temp_inputs;
+    output<my_parameterized_module> temp_outputs1, temp_outputs2;
+
+    temp_inputs.a = a;
+    temp_inputs.b = b;
+    temp_outputs1 = my_parameterized_module(temp_inputs);
+
+    temp_inputs.a = c;
+    temp_inputs.b = d;
+    temp_outputs2 = my_parameterized_module(temp_inputs);
+
+    // You can also pass the parameters with the signals
+    e = my_simple_module(WIDTH, temp_outputs1.c, temp_outputs2.c);
+}
+
+// You can add state to modules through registers or latches, which require a
+// clock and an optional reset
+module my_state_module (
+    parameter bit [32] WIDTH,
+    input bit clk, rst,
+    input bit [WIDTH] a, b,
+    output bit [WIDTH] c,
+) {
+    reg bit state_reg(clk, rst);
+    reg bit value_reg(clk); // Optional reset
+    c = a + b;
+
+    value_reg = c[0]; // Just do the assignment right here
+}
+
+// If you have a struct where you want to mix clocks and resets amongst
+// different fields of a struct you can define that as well
+struct my_struct_t {
+    bit [8] state;
+    bit [8] my_value;
+    bit [8] stuff;
+}
+
+module my_state_struct_module (
+    parameter bit [32] WIDTH,
+    input bit clk, rst,
+    input bit [WIDTH] a, b,
+    output bit [WIDTH] c,
+) {
+    reg my_struct_t my_struct(clk, rst); // You can do the whole struct at once
+
+    // You can label the fields specifically
+    reg my_struct_t my_struct_specific {
+        reg state(clk, rst);
+        reg my_value(clk);
+        // If you don't label a field it is not assigned a register and behaves
+        // like a normal variable
+    }
+
+    my_struct_specific.state = a;
+    my_struct_specific.value = b;
+
+    c = a + b;
+}
+
+// You can also define outputs as registers too
+module my_incr_module (
+    parameter bit [32] WIDTH,
+    input bit clk, rst,
+    input bit [WIDTH] a,
+    output reg bit [WIDTH] b(clk, rst),
+) {
+    b = a + 'b1;
+}
+
+// If you want to assign to a value in the past, say if you have two modules
+// that you need to stitch their inputs and outputs to each other respectively,
+// then you can use future assignments. You can get combinational loops with 
+// this really easily so a variety of warnings will be issued depending on how
+// they are used.
+module my_state_struct_module (
+    parameter bit [32] WIDTH,
+    input bit clk, rst,
+    output bit [WIDTH] stage1, stage2,
+) {
+    future bit [WIDTH] stage2_output;
+
+    bit [WIDTH] stage1_output = my_incr_module(WIDTH, stage2_output);
+
+    // You cannot assign to a future value in an if-statement or multiple times
+    // and it must appear in the same scope, not above or below. Future
+    // assigments can be put in an if-statement controlled by parameters but
+    // it has to resolve to a single assignment
+    stage2_output = my_incr_module(WIDTH, stage1_output);
+
+    stage1 = stage1_output;
+    stage2 = stage2_output;
+}
