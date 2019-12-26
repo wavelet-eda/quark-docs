@@ -1,0 +1,17 @@
+/*
+Quark Abstract Syntax Tree Documentation (*.qk):
+
+At the top level of the AST you have the FILE node which can then contain a list
+of the the following
+
+- quark(...);
+- import ... ;
+- module ... [] {}
+- interface ... [] {}
+- function ... [] () {}
+- typedef [] ... ;
+    - strict
+- struct ... [] {}
+- enum ... [] {}
+
+*/

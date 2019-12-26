@@ -14,143 +14,132 @@ Warnings are issued if a future assignment is used in a module using other
 modules that do not have all of their outputs registered.
 */
 
-module my_simple_module (
-    // Parameters have to come first
+module my_simple_module [
+    bit [32] WIDTH, // Must be given as a parameter (you don't need param first)
+    // You can declare a derived parameter as a constant that cannot be passed
+    // in but can be assigned by internal logic
+    const bit [32] WIDTH_HALF = WIDTH / 2,
+    // You can define a default parameter that does not have to be passed in,
+    // but any default parameter requires that all parameters be passed in
+    // with labels
+    bit [WIDTH_HALF] HEIGHT = 32, // Trailing comma lol
+] {
 
-    // Everything has to have a specific type (no inferred types) and it is
-    // either an input, output, or parameter
-    param bit [32] WIDTH, // Parameters are in same section
-
-    // Parameters can be also be created that depend on other parameters but
-    // cannot be explicity set by the user
-    param fixed bit [32] ADDR_WIDTH = clog2(WIDTH),
+    // You can also create parameter variables in the body of the module
+    // but they need to be labeled explicitly so they aren't confused for
+    // signals. The compiler could work it out without this, but it becomes
+    // a lot less readable if the labels aren't forced to be there.
+    param fixed bit [32] ADDR_WIDTH = clog2(WIDTH);
 
     // Inputs and outputs can be mixed
-    input bit [WIDTH] a, b,
-    output bit [WIDTH] c, // Trailing comma allowed
-) {
+    input bit [WIDTH] a, b;
+    output bit [WIDTH] c;
+
     c = a + b; // Just do the assignment right here
 }
 
 // You can also call one module inside of another module, just like a function
-module my_nested_module (
-    param bit [32] WIDTH,
-    input bit [WIDTH] a, b, c, d,
-    output bit [WIDTH] e,
-) {
+// but you need to use a new keyword since this technically creates new state
+// (to be explained later)
+module my_nested_module [
+    bit [32] WIDTH
+] {
+    input bit [WIDTH] a, b, c, d;
+    output bit [WIDTH] e;
+
+    // All variables default to zero (you cannot infer a latch)
     bit [WIDTH] temp1, temp2;
-    my_simple_module(WIDTH, a, b, temp1);
-    my_simple_module(WIDTH, c, d, temp2);
-    my_simple_module(WIDTH, temp1, temp2, e);
+    temp1 = new my_simple_module [WIDTH] (a, b);
+    temp2 = new my_simple_module [WIDTH] (c, d);
+    e = new my_simple_module [WIDTH] (temp1, temp2);
 }
 
-// You can list out the module parameters ahead of time and use the module
-// multiple times as well
-module my_nested_module (
-    param bit [32] WIDTH,
-    input bit [WIDTH] a, b, c, d,
-    output bit [WIDTH] e,
-) {
-    bit [WIDTH] temp1, temp2;
+// // You can list out the module parameters ahead of time and use the module
+// // multiple times as well
+// module my_nested_module (
+//     param bit [32] WIDTH,
+//     input bit [WIDTH] a, b, c, d,
+//     output bit [WIDTH] e,
+// ) {
+//     bit [WIDTH] temp1, temp2;
     
-    // Parameter name matching works the same inside <> as ()
-    my_simple_module<.WIDTH> my_parameterized_module;
+//     // Parameter name matching works the same inside <> as ()
+//     my_simple_module<.WIDTH> my_parameterized_module;
 
-    // We got the parameters out of the way
-    my_parameterized_module(a, b, temp1);
-    my_parameterized_module(c, d, temp2);
-    my_parameterized_module(temp1, temp2, e);
-}
+//     // We got the parameters out of the way
+//     my_parameterized_module(a, b, temp1);
+//     my_parameterized_module(c, d, temp2);
+//     my_parameterized_module(temp1, temp2, e);
+// }
 
 // While the unnamed passing style is normal and generally acceptable for
 // functions, it becomes incredibly error-prone when you have a lot of values
 // For this reason, named port assignments just like SV are supported
-module my_nested_explicit_module (
-    param bit [32] WIDTH,
-    input bit [WIDTH] a, b, c, d,
-    output bit [WIDTH] e,
-) {
-    bit [WIDTH] temp1, temp2; // All variables default to zero (you cannot infer
-    // a latch)
+module my_nested_explicit_module [
+    bit [32] WIDTH
+] {
+    input bit [WIDTH] a, b, c, d;
+    output bit [WIDTH] e;
 
-    // WIDTH is passed by name matching (just like SV) and the inputs/outputs
-    // are passed explicitly in both source and destination names
-    my_simple_module(.WIDTH, .a(a), .b(b), .c(temp1));
-    my_simple_module(.WIDTH, .a(c), .b(d), .c(temp2));
+    bit [WIDTH] temp1, temp2;
+
+    // You can pass everything labeled as well as left-hand expressions 
+    {c: temp1} = new my_simple_module [WIDTH: WIDTH] (a: a, b: b);
+    {c: temp2} = new my_simple_module [WIDTH: WIDTH] (a: c, b: d);
+    
     // Of note here is that these modules are still like function calls, as in 
     // their ordering matters. If you called the module doing a + b after the
     // module doing temp1 + temp2 then you will have different behavior
-    my_simple_module(.WIDTH, .a(temp1), .b(temp2), .c(e));
+    {c: e} = new my_simple_module [WIDTH: WIDTH] (a: temp1, b: temp2);
 }
 
 // You can list out the module parameters ahead of time and use the module
 // multiple times as well
-module my_nested_module (
-    param bit [32] WIDTH,
-    input bit [WIDTH] a, b, c, d,
-    output bit [WIDTH] e,
-) {
+module my_nested_module [
+    bit [32] WIDTH
+] {
+    input bit [WIDTH] a, b, c, d;
+    output bit [WIDTH] e;
+
     bit [WIDTH] temp1, temp2;
     
     // Parameter name matching works the same inside <> as () but you can only
     // list parameters, but you have to define all of the parameters
-    typedef my_simple_module<.WIDTH> my_parameterized_module;
+    typedef my_simple_module [WIDTH] my_parameterized_module;
 
     // We got the parameters out of the way
-    my_parameterized_module(a, b, temp1);
-    my_parameterized_module(c, d, temp2);
-    my_parameterized_module(temp1, temp2, e);
-}
-
-// You can also pass the inputs and outputs of a module through more of a
-// function call syntax that allows for modules to be called like functions
-module my_typed_module (
-    param bit [32] WIDTH,
-    input bit [WIDTH] a, b, c, d,
-    output bit [WIDTH] e,
-) {
-    bit [WIDTH] temp1, temp2;
-    
-    // Parameter name matching works the same inside <> as ()
-    typedef my_simple_module<.WIDTH> my_parameterized_module;
-
-    // Left hand assignment syntax, with explict struct naming
-    {c: temp1} = my_parameterized_module({a: a, b: b});
-
-    // Left hand assignment syntax, with implicit list naming
+    temp1 = my_parameterized_module(a, b);
     temp2 = my_parameterized_module(c, d);
-
-    // You can also pass the parameters with the signals
-    e = my_simple_module(WIDTH, temp1, temp2);
+    e = my_parameterized_module(temp1, temp2);
 }
 
-// The collection of inputs or outputs that make up a module also form an
-// implicitly defined type and can be used inline in code
-module my_typed_module2 (
-    param bit [32] WIDTH,
-    input bit [WIDTH] a, b, c, d,
-    output bit [WIDTH] e,
-) {
-    bit [WIDTH] temp1, temp2;
+// // The collection of inputs or outputs that make up a module also form an
+// // implicitly defined type and can be used inline in code
+// module my_typed_module2 (
+//     param bit [32] WIDTH,
+//     input bit [WIDTH] a, b, c, d,
+//     output bit [WIDTH] e,
+// ) {
+//     bit [WIDTH] temp1, temp2;
     
-    // Parameter name matching works the same inside <> as ()
-    typedef my_simple_module<.WIDTH> my_parameterized_module;
+//     // Parameter name matching works the same inside <> as ()
+//     typedef my_simple_module<.WIDTH> my_parameterized_module;
 
-    // Left hand assignment syntax, with explict struct naming
-    input<my_parameterized_module> temp_inputs;
-    output<my_parameterized_module> temp_outputs1, temp_outputs2;
+//     // Left hand assignment syntax, with explict struct naming
+//     input<my_parameterized_module> temp_inputs;
+//     output<my_parameterized_module> temp_outputs1, temp_outputs2;
 
-    temp_inputs.a = a;
-    temp_inputs.b = b;
-    temp_outputs1 = my_parameterized_module(temp_inputs);
+//     temp_inputs.a = a;
+//     temp_inputs.b = b;
+//     temp_outputs1 = my_parameterized_module(temp_inputs);
 
-    temp_inputs.a = c;
-    temp_inputs.b = d;
-    temp_outputs2 = my_parameterized_module(temp_inputs);
+//     temp_inputs.a = c;
+//     temp_inputs.b = d;
+//     temp_outputs2 = my_parameterized_module(temp_inputs);
 
-    // You can also pass the parameters with the signals
-    e = my_simple_module(WIDTH, temp_outputs1.c, temp_outputs2.c);
-}
+//     // You can also pass the parameters with the signals
+//     e = my_simple_module(WIDTH, temp_outputs1.c, temp_outputs2.c);
+// }
 
 // You can add state to modules through registers or latches, which require a
 // clock and an optional reset

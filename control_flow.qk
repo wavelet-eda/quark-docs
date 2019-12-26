@@ -160,3 +160,9 @@ future (bit a1, bit a2) {
 // must be unique, and default is allowed but it does not allow you to extract
 // the values contained in the union.
 
+// Future bits are instead handled by a scoped future block, you have to call
+// interfaces like they are functions, and you get the ability to selectively
+// own certain fields of an interface when it is passed to a module.
+
+// You also use square brackets to handle parameters, for loops work 
+// exclusively with iterators, and you 
