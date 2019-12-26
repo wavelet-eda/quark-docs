@@ -11,7 +11,7 @@ function bit [8] add(bit [8] a, b) {
 }
 
 // You can also parameterize a function
-function<W> bit [W] add(bit [W] a, b) {
+function bit [W] add [bit [32] W](bit [W] a, b) {
     return a + b;
 }
 
@@ -38,10 +38,23 @@ bit [8] result = add(my_add); // my_add.c is still 'h0
 // This allows functions to be parameterized based on structs without confusing
 // them as being member functions, since they lack access to the struct scope
 
-struct param_struct_t<W> {
+struct param_struct_t [bit [32] W] {
     bit [W] a;
 }
 
-function bit [W] implicit_params_func(param_struct_t<W> p) {
+function bit [W] implicit_params_func(param_struct_t[W] p) {
     return p.a;
 }
+
+// You can also setup a function to return an implicitly created struct
+function {bit [32] a, b} mix(bit [32] a, b) {
+    return {a: b, b: a};
+}
+
+bit [32] a, b;
+{a: a, b: b} = mix(a, b); // You can use named left-hand expressions
+a, b = mix(a, b); // You can use unnamed left-hand expressions
+
+// You can pass the result to another function or module, but it will use name
+// matching between the implicit struct and the arguments, not their order
+a, b = mix(mix(a, b));

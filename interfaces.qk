@@ -43,7 +43,7 @@ interface my_block_intf {
 }
 
 // Interfaces can contain arbitrary logic as long as they only depend on
-// parameters, not signals
+// parameters, not signals, since interfaces generate no runtime logic
 interface my_param_intf [bit [32] WIDTH] {
     bit [32] width_half = WIDTH / 2;
 
@@ -57,4 +57,49 @@ interface my_param_intf [bit [32] WIDTH] {
 interface my_nest_intf {
     output my_intf a;
     input my_intf b;
+}
+
+// Interfaces if not connected or assigned to will throw an error at compile
+// time, unless a default set of values is provided for that interface
+// Individual, non-interface, signals in a module will always throw an error
+// when not connected to, so interfaces provide a way to handle "optional"
+// connections
+
+interface my_default_intf {
+    output bit valid;
+    output bit [32] data;
+    input bit ready_n;
+
+    // It will throw an error if you do not assign values to all of the signals
+    // in the interface, for either the input or the output interface
+    default {
+        valid = 'b0;
+        data = 'b0;
+        ready_n = 'b1;
+    }
+}
+
+// If you have nested interfaces and you want to have default behavior as well,
+// then the nested interfaces must already have default behavior defined, or 
+// you can set all of the default behaviors for the sub-interfaces manually
+// if they do not already have default behavior
+
+interface my_non_default_intf {
+    output bit valid;
+    output bit [32] data;
+    input bit ready_n;
+}
+
+interface my_nested_default_intf {
+    input my_default_intf a;
+    output my_non_default_intf b;
+
+    default {
+        // We can alter default behavior for a sub-interface
+        a.valid = 'b1;
+        // b has no defaults so we are forced to set all of them
+        b.valid = 'b0;
+        b.data = 'b0;
+        b.ready_n = 'b1;
+    }
 }
