@@ -1,0 +1,162 @@
+/*
+Quark Control Flow Documentation (*.qk):
+
+*/
+
+// You can use if/else if/else blocks just SV, where any multi-bit argument is
+// reduction-OR-ed to a single bit for evaluating the condition
+
+bit [32] test = 42;
+
+if (test) {
+    // Stuff
+} else if (test) {
+    // Stuff
+} else {
+    // Stuff
+}
+
+// ------------------- Loops --------------------------------------
+
+// For loops are the only kind of iterators that are supported in this language,
+// and you have to use an iterator over an array.
+for (bit [32] i in range(0, 23, 1)) {
+    // start (inclusive), stop (exclusive), skip
+}
+
+for (bit [32] i in range(23, 0, 1)) {
+    // Also works in reverse
+}
+
+// Range produces an array so this works too
+bit [32] stuff [24] = range(0, 24); // Sizes must match
+for (bit [32] i in stuff) {
+    // i is 0, 1, 2, 3, ...
+}
+
+// You can also use the iterate function to iterate over an array with an index
+bit [32] stuff [24]; // Initialize somewhere
+for (bit [32] i, bit [32] val in iterate(stuff)) {
+
+}
+
+// -------------------- Case/Match ------------------------------
+
+// You can use a case statement on any value (often an enum), which unlike C
+// does not require a break statement after each case
+
+bit [32] temp;
+bit [4] data;
+
+case (data) { // data must be a bit-vector
+    4'b0000: {
+        data = 1;
+        temp = 42; // You can list multiple lines after the case with {}
+    }
+    4'b0001: data = 2;
+    4'b0010, 4'b011: data = 4; // You can list multiple cases
+    4'b0100 to 4'b0111: data = 8; // You can specify a range (must be
+                                  // between bit-vector constants)
+    4'b1???: test = 16; // You can use question-marks to denote don't care
+                        // values, but question marks can only show up inside
+                        // of the case statement
+    default: test = 0; // Default can be used too
+}
+
+// You can also qualify a case statement with a unique keyword, which says that
+// all cases must not overlap and a default condition must be provided if all
+// cases are not covered. If all cases are covered manually then a default cas
+
+unique case (data) { // data must be a bit-vector
+    4'b0000: {
+        data = 1;
+        temp = 42; // You can list multiple lines after the case with {}
+    }
+    4'b0001: data = 2;
+    4'b0010, 4'b011: data = 4; // You can list multiple cases
+    4'b0100 to 4'b0111: data = 8;
+    4'b1???: test = 16;
+    // All cases were covered so the default will fail to compile
+    // default: test = 0; 
+}
+
+// If you have an enum with union fields then you can use a match statement to
+// extract their values, but you can only use a match statement on an enum and
+// multiple cases, ranges, or wildcards are not allowed like in case statements
+
+enum uint8_t my_enum_union_t {
+    ZERO('h0) {
+        uint32_t data;
+    },
+    ONE('h1) {
+        // The bitwidths of different enum values do not have to match, it will
+        // just use the widest version when building it
+        uint16_t smaller_data;
+        uint8_t smallest_data;
+    }
+}
+
+my_enum_union_t my_enum = my_enum_union_t.ZERO{ data: 'h0 };
+
+match (my_enum) {
+    ZERO(uint32_t data): { // The types and their order must match but the names
+                           // of the values do not have to
+        data = 'h0; // Modifications to the enum fields are not reflected
+                    // to the actual enum, you instead need to reconstruct it
+        my_enum = my_enum_union_t.ONE{'h1, 'h2};
+    }
+    ONE(uint16_t smaller_data, uint8_t smallest_data): {
+
+    }
+    default: { // You can provide default but it can't unpack the enum
+
+    }
+}
+
+// -------------------- Future ------------------------------
+
+// When in situations where you have multiple modules that you need to
+// connect in something of a "loop" you can use future blocks to represent
+// the usage of a variable before it is available to use
+
+// Let's say you have module test with input a and output b and you want to
+// connect two of them with a -> b for both of them
+
+future (bit a) {
+    bit b = new test(a);
+    bit temp = new test(b);
+} (temp); // You have access to the inner scope on the final assignments
+
+// You can also perform arbitrary operations in the future block final
+// assignment
+
+future (bit a) {
+    bit b = new test(a); 
+} (new test(b)); // Shorter code, same as above
+
+// You can also list out multiple future variables
+
+future (bit a1, bit a2) {
+    bit b1 = new test(a1);
+    bit b2 = new test(a2);
+} (new test(b1), new test(b2));
+
+// You cannot access a or any of the scoped variables after the future block
+
+// A future variable must be assigned at some point through another module, i.e.
+// you cannot build a module alone with a future block. Any logic not restricted
+// by the interface to another module can be rewritten in a sequential fashion
+// and the designer is implored to do so in any case where that is possible
+
+// New notes:
+
+// In case statements you can use ranges, wildcards (no ranges between 
+// wildcards), and multiple values, but all case statement branches need to be
+// unique, so if all cases are covered for instance a default statement is not
+// allowed.
+
+// If you use a match statement (case but enums are now unions too), then
+// wildcards are no longer allowed and neither are ranges. Once again all cases
+// must be unique, and default is allowed but it does not allow you to extract
+// the values contained in the union.
+

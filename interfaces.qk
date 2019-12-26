@@ -1,0 +1,60 @@
+/*
+Quark Interface Documentation (*.qk):
+
+SV improved Verilog with interfaces, trying to connect modules together with a
+single "variable" or connection that slightly reduced the tedium of connecting
+tons of slightly differently named wires. This was an improvement, but it had
+some limitations, mostly from confusions and ambiguity in the language.
+
+First the user has to declare their own modports to define the direction of
+different signals in the interface. This means you could hypothetically build
+an interface that connects three or modules coherently with a single interface
+instantiation. This also means that multiple modules can be connected to an
+interface, with some amount of ambiguity on which of those modules drives the
+interface "outputs" from their perspective.
+
+Quark makes a few modifications to this, namely all interfaces are point to 
+point (master/slave), and their direction is indicated by all signals either
+being an input or output, instead of explicit modports
+
+*/
+
+// Simple interface
+interface my_intf {
+    output a;
+    input b;
+}
+
+// Interface with parameters
+interface my_param_intf [bit [32] WIDTH] {
+    output a;
+    output [WIDTH] data;
+    input b;
+}
+
+// Interface with block signals
+interface my_block_intf {
+    output {
+        bit a;
+    }
+    input {
+        bit b;
+    }
+}
+
+// Interfaces can contain arbitrary logic as long as they only depend on
+// parameters, not signals
+interface my_param_intf [bit [32] WIDTH] {
+    bit [32] width_half = WIDTH / 2;
+
+    output a;
+    output [width_half] data;
+    input b;
+}
+
+// Interfaces can be nested, but a nested interface must also be labeled as an
+// input or an output
+interface my_nest_intf {
+    output my_intf a;
+    input my_intf b;
+}

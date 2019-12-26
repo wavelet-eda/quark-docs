@@ -127,6 +127,7 @@ bit [8] stuff = 8'hff;
 uint8_t other_stuff = stuff; // no casting needed
 
 // You can however define a strict typedef in which casting would be required
+// You cannot use a strict typedef as the base type for an enum ???
 typedef strict bit [8] strict_uint8_t;
 bit [8] stuff = 8'hff;
 // Note the widths still have to match, you need to pad otherwise
@@ -152,50 +153,6 @@ struct more_stuff_t {
 
 // Structs can be explicitly initialized like follows
 stuff_t s = {a_byte: 8'sh8, another_byte: 'h5};
-
-// ----------------- Enums -----------------
-
-// The type declaration of the enum has to be a bit vector or a typedef of 
-// a bit vector (no arrays)
-enum bit my_enum_t {
-    OFF = 'h0,
-    ON = 'h1, // You can have a trailing comment if you want (mindblown)
-}
-
-// Debating if the compiler throws a warning for enum fields that aren't 
-// capitalized
-enum uint8_t my_byte_enum_t {
-    ONE = 'h1,
-    BIG = 'h255,
-    // You do not have to define fields for all of the enum combinations
-}
-
-// Enum fields are accessed hierarchically (enum namespace pollution is a 
-// real problem in verilog)
-my_byte_enum_t my_var0 = my_byte_enum_t.ONE;
-
-// You could list out all valid enum values to check if an enum exists in a 
-// valid state, but you can also use the undef function (if your enum does
-// not list out all valid states)
-bit test = undef(my_var0); // Should this come from a standard???
-
-// You can define an enum without explicit values and it is defined that they 
-// start at zero and keep incrementing
-enum uint8_t my_default_enum_t {
-    ZERO, ONE, TWO, THREE, FOUR
-}
-
-// Assignments between enums and their base types require the use of casting
-// but the width's must match just like bit-vector assignments
-my_default_enum_t test_cast = (my_default_enum_t) 8'h7;
-
-// If you cast a same-size enum to and from its base type it will preserve the
-// bits even if the enum does not enumerate all the possible combinations
-uint8_t test1 = 'h7;
-my_default_enum_t test2 = (my_default_enum_t) test1;
-uint8_t test3 = (uint8_t) test1; // Will have same values
-
-// You cannot use a strict typedef as the base type for an enum
 
 // ----------------- Struct/Typedef Parameterization -----------------
 
@@ -241,39 +198,80 @@ nested_types_struct_t<42>.custom_t my_field;
 typedef nested_types_struct_t<42>.custom_t custom_def_t; // typedef it too
 custom_def_t my_custom_def;
 
-// -------------- Struct Inheritance ---------------------
+// ----------------- Enums -----------------
 
-// Structs can inherit from other structs, but the inherited struct needs to be
-// declared as abstract and this only supports single inheritance. Also, there
-// are no public/private distinctions and fields cannot be overriden or masked.
-// You can also use an abstract struct normally, there is no way to restrict
-// this, in hardware that doesn't really make a lot of sense.
-
-abstract struct my_abstract_t {
-    bit [4] parent_stuff;    
+// The type declaration of the enum has to be a bit vector or a typedef of 
+// a bit vector (no arrays)
+enum bit my_enum_t {
+    OFF,
+    ON, // You can have a trailing comment if you want (mindblown)
 }
 
-struct my_concrete_t : my_abstract_t {
-    bit [4] child_stuff;
+// You can also declare the values of the enum members explicitly
+enum bit my_enum_explicit_t {
+    OFF('h0),
+    ON('h1)
 }
 
-my_abstract_t abs_st; // You can access parent_stuff only
-my_concrete_t con_st; // You can access parent_stuff and child_stuff
+enum uint8_t my_byte_enum_t {
+    ONE('h1),
+    BIG('h255)
+    // You do not have to define fields for all of the enum combinations
+}
 
-// I am really torn on these semantics, specifically how assignments
-// work with loss of generality or specificity. It probably needs a restricted
-// type parameter when it is used
+// Enum fields are accessed hierarchically (enum namespace pollution is a 
+// real problem in verilog)
+my_byte_enum_t my_var0 = my_byte_enum_t.ONE;
 
-/*
-// Any abstract struct also has an implicit field 'meta' and associated 'meta_t'
-// type that contains all the child struct contents, assuming that the struct 
-// has been passed around
+// While Quark does not have unions like C or SV, it does provide an extension
+// to enums that does allow for encoding different bit patterns with different
+// interpretations, borrowed largely from the Rust syntax
 
-// Find width manually
-parameter bit [32] W = width(abs_st.meta);
-bit [W] meta_data = abs_st.meta;
+enum uint8_t my_enum_union_t {
+    ZERO('h0) {
+        uint32_t data;
+    },
+    ONE('h1) {
+        // The bitwidths of different enum values do not have to match, it will
+        // just use the widest version when building it
+        uint16_t smaller_data;
+        uint8_t smallest_data;
+    }
+}
 
-// Rely on built in 
-abs_st.meta_t meta_data_def = abs_st.meta;
-*/
+// You can initialize the enum fields when you assign it a value 
+// (see control_flow.qk for how to modify and inspect it)
+
+// Fields have to be explicitly labeled
+my_enum_union_t my_enum = my_enum_union_t.ZERO{ data: 'h0 };
+
+// While you cannot ask the width or length of an enum you can ask for its size
+// which should be width of its largest enum value plus the width of the enum
+// itself
+
+// Should be 8 + 32 = 40 bits
+bit [32] my_enum_union_size = size(my_enum_union_t);
+
+// See control flow for case statements (control_flow.qk)
+
+// You could list out all valid enum values to check if an enum exists in a 
+// valid state, but you can also use the undef function (if your enum does
+// not list out all valid states)
+bit test = undef(my_var0); // Should this come from a standard???
+
+// You can define an enum without explicit values and it is defined that they 
+// start at zero and keep incrementing
+enum uint8_t my_default_enum_t {
+    ZERO, ONE, TWO, THREE, FOUR
+}
+
+// Assignments between enums and their base types require the use of casting
+// but the width's must match just like bit-vector assignments
+my_default_enum_t test_cast = (my_default_enum_t) 8'h7;
+
+// If you cast a same-size enum to and from its base type it will preserve the
+// bits even if the enum does not enumerate all the possible combinations
+uint8_t test1 = 'h7;
+my_default_enum_t test2 = (my_default_enum_t) test1;
+uint8_t test3 = (uint8_t) test1; // Will have same values
 

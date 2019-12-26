@@ -40,9 +40,9 @@ quark(v0); // Specific version
 quark(); // Non-specific version
 
 // Wildcards work just like SystemVerilog or Python
-import lib.fpga_utils::*;
+import lib.fpga_utils.*;
 // Multiple specific imports can be put together in comma separated list
-import lib.other_file::(CoolModule, NotSoCoolModule);
+import lib.other_file.(CoolModule, NotSoCoolModule);
 // You cannot list multiple imports from different folders on the same line
 
 // QUESTION: Imports can only be done at top level???
