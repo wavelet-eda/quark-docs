@@ -54,23 +54,21 @@ module my_nested_module [
     e = new my_simple_module [WIDTH] (temp1, temp2);
 }
 
-// // You can list out the module parameters ahead of time and use the module
-// // multiple times as well
-// module my_nested_module (
-//     param bit [32] WIDTH,
-//     input bit [WIDTH] a, b, c, d,
-//     output bit [WIDTH] e,
-// ) {
-//     bit [WIDTH] temp1, temp2;
-    
-//     // Parameter name matching works the same inside <> as ()
-//     my_simple_module<.WIDTH> my_parameterized_module;
+// You can list out the module parameters ahead of time and use the module
+// multiple times as well
+module my_nested_module_typedef [bit [32] WIDTH] {
+    input bit [WIDTH] a, b, c, d;
+    output bit [WIDTH] e;
 
-//     // We got the parameters out of the way
-//     my_parameterized_module(a, b, temp1);
-//     my_parameterized_module(c, d, temp2);
-//     my_parameterized_module(temp1, temp2, e);
-// }
+    bit [WIDTH] temp1, temp2;
+    
+    typedef my_simple_module [WIDTH] my_parameterized_module;
+
+    // We got the parameters out of the way
+    temp1 = new my_parameterized_module(a, b);
+    temp2 = new my_parameterized_module(c, d);
+    e = new my_parameterized_module(temp1, temp2);
+}
 
 // While the unnamed passing style is normal and generally acceptable for
 // functions, it becomes incredibly error-prone when you have a lot of values
@@ -93,54 +91,31 @@ module my_nested_explicit_module [
     {c: e} = new my_simple_module [WIDTH: WIDTH] (a: temp1, b: temp2);
 }
 
-// You can list out the module parameters ahead of time and use the module
-// multiple times as well
-module my_nested_module [
-    bit [32] WIDTH
-] {
-    input bit [WIDTH] a, b, c, d;
-    output bit [WIDTH] e;
-
+// The collection of inputs or outputs that make up a module also form an
+// implicitly defined type and can be used inline in code
+module my_typed_module2 (
+    param bit [32] WIDTH,
+    input bit [WIDTH] a, b, c, d,
+    output bit [WIDTH] e,
+) {
     bit [WIDTH] temp1, temp2;
     
-    // Parameter name matching works the same inside <> as () but you can only
-    // list parameters, but you have to define all of the parameters
+    // Parameter name matching works the same inside <> as ()
     typedef my_simple_module [WIDTH] my_parameterized_module;
 
-    // We got the parameters out of the way
-    temp1 = my_parameterized_module(a, b);
-    temp2 = my_parameterized_module(c, d);
-    e = my_parameterized_module(temp1, temp2);
+    // Left hand assignment syntax, with explict struct naming
+    input[my_parameterized_module] temp_inputs = {a: a, b: b};
+    output[my_parameterized_module] temp_outputs1, temp_outputs2;
+
+    temp_outputs1 = new my_parameterized_module(temp_inputs);
+
+    temp_inputs = {a: c, b: d};
+    temp_outputs2 = new my_parameterized_module(temp_inputs);
+
+    // You can also pass the parameters with the signals
+    temp_inputs = {a: temp_outputs1.c, b: temp_outputs2.c};
+    e = new my_simple_module [WIDTH] (temp_inputs);
 }
-
-// ??? I am really torn on this syntax rn, I can play with this
-// // The collection of inputs or outputs that make up a module also form an
-// // implicitly defined type and can be used inline in code
-// module my_typed_module2 (
-//     param bit [32] WIDTH,
-//     input bit [WIDTH] a, b, c, d,
-//     output bit [WIDTH] e,
-// ) {
-//     bit [WIDTH] temp1, temp2;
-    
-//     // Parameter name matching works the same inside <> as ()
-//     typedef my_simple_module<.WIDTH> my_parameterized_module;
-
-//     // Left hand assignment syntax, with explict struct naming
-//     input<my_parameterized_module> temp_inputs;
-//     output<my_parameterized_module> temp_outputs1, temp_outputs2;
-
-//     temp_inputs.a = a;
-//     temp_inputs.b = b;
-//     temp_outputs1 = my_parameterized_module(temp_inputs);
-
-//     temp_inputs.a = c;
-//     temp_inputs.b = d;
-//     temp_outputs2 = my_parameterized_module(temp_inputs);
-
-//     // You can also pass the parameters with the signals
-//     e = my_simple_module(WIDTH, temp_outputs1.c, temp_outputs2.c);
-// }
 
 // Before explaining how stateful elements like registers or latches work,
 // clock and reset signals need to be explained first. These signals are single
@@ -215,8 +190,8 @@ module my_state_struct_module [bit [32] WIDTH] {
     reg my_struct_t my_struct(clk, rst);
 
     // You can label the fields specifically for their default values
-    // This example resets state and stuff specifically but does not reset
-    // my_value. Because of this approach you cannot divide a single register
+    // This example resets 'state' and 'stuff' specifically but does not reset
+    // 'my_value'. Because of this approach you cannot divide a single register
     // between different clocks (that is a horrific idea).
     reg my_struct_t my_struct_specific(clk, rst, {state: 'h0, stuff: 'h1});
 

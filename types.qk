@@ -133,9 +133,9 @@ bit [8] stuff = 8'hff;
 // Note the widths still have to match, you need to pad otherwise
 strict_uint8_t other_stuff = (strict_uint8_t) stuff; // casting needed
 
-// typedefs also accept template arguments
-typedef<W> bit [W] something_template_t;
-something_template_t<W> some_something;
+// typedefs also accept parameters
+typedef [bit [32] W] bit [W] something_template_t;
+something_template_t [24] some_something;
 
 // ----------------- Structs -----------------
 
@@ -154,48 +154,35 @@ struct more_stuff_t {
 // Structs can be explicitly initialized like follows
 stuff_t s = {a_byte: 8'sh8, another_byte: 'h5};
 
+// You can set default values for a struct as well, which is the values that the
+// struct will assume if used in a register with reset or if it is simply
+// created in a module or function
+
+struct my_default_struct_t {
+    bit [32] test = 'h1;
+    bit [24] other = 24'hffffff;
+}
+
 // ----------------- Struct/Typedef Parameterization -----------------
 
-// You can list parameters to a struct, where these parameters can allow for 
-// "generic/templated" versions of the type
-struct stuff_t<W, T> {
-    signed bit [W] a_byte; // W implicitly must be a bit-vector
-    T abstract_stuff; // T must implicitly be a type
+// You can list parameters to a struct just like a typedef (name comes first)
+struct stuff_t [bit [32] W, type T] {
+    signed bit [W] a_byte;
+    T abstract_stuff;
 }
-
-// Parameters can also be restricted to a specific type or declaration of
-// a type
-struct stuff_explicit_t<W: bit [4], W2: bit [], T: type> {
-    bit [W] binary_stuff; // W explicitly must be a bit-vector of 4-bits
-    bit [W2] more_binary_stuff; // W2 explicitly must be a bit-vector
-    T struct_stuff; // T must explicitly be a type
-}
-
-// Type parameters can further be restricted to specific types. Here T is
-// available in the struct body, but cannot be used in the type restriction
-// since that would be a recursive definition. Likewise W is a type placeholder
-// that was not already defined as a top level, so it can be used as the lower
-// type restriction. The bit vector simply requires that an given definition of
-// T requires that its T template argument is a bit [32]
-struct stuff_explicit_type_t<T: type stuff_t<W, bit [32]>> {
-    T restricted_stuff;
-}
-
-// This type would be declared as such
-stuff_explicit_type_t<stuff_t<12, bit [32]>> my_stuff;
 
 // You can also nest enums/typedefs/structs hierarchically, if you want to share
 // generic parameters among multiple types
-struct nested_types_struct_t<W> {
+struct nested_types_struct_t [bit [32] W] {
     bit [W] binary_stuff;
 
     typedef bit [W*2] custom_t; // You cannot add extra template variables here
 }
 
 // Where you can declare types as follows
-nested_types_struct_t<42> my_struct;
-nested_types_struct_t<42>.custom_t my_field;
-typedef nested_types_struct_t<42>.custom_t custom_def_t; // typedef it too
+nested_types_struct_t[42] my_struct;
+nested_types_struct_t[42].custom_t my_field;
+typedef nested_types_struct_t[42].custom_t custom_def_t; // typedef it too
 custom_def_t my_custom_def;
 
 // ----------------- Enums -----------------
@@ -274,4 +261,3 @@ my_default_enum_t test_cast = (my_default_enum_t) 8'h7;
 uint8_t test1 = 'h7;
 my_default_enum_t test2 = (my_default_enum_t) test1;
 uint8_t test3 = (uint8_t) test1; // Will have same values
-

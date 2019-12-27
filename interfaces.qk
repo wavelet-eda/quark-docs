@@ -66,17 +66,12 @@ interface my_nest_intf {
 // connections
 
 interface my_default_intf {
-    output bit valid;
-    output bit [32] data;
-    input bit ready_n;
-
     // It will throw an error if you do not assign values to all of the signals
-    // in the interface, for either the input or the output interface
-    default {
-        valid = 'b0;
-        data = 'b0;
-        ready_n = 'b1;
-    }
+    // in the interface, for either the input or the output interface, so long
+    // as any are assigned
+    output bit valid = 'h0;
+    output bit [32] data = 'b0;
+    input bit ready_n = 'h1;
 }
 
 // If you have nested interfaces and you want to have default behavior as well,
@@ -92,14 +87,7 @@ interface my_non_default_intf {
 
 interface my_nested_default_intf {
     input my_default_intf a;
-    output my_non_default_intf b;
-
-    default {
-        // We can alter default behavior for a sub-interface
-        a.valid = 'b1;
-        // b has no defaults so we are forced to set all of them
-        b.valid = 'b0;
-        b.data = 'b0;
-        b.ready_n = 'b1;
-    }
+    // This will use the struct default until overridden
+    input some_struct_with_default_t s;
+    output my_non_default_intf b = {valid: 'b0, data: 'b0, ready_n: 'b1};
 }
