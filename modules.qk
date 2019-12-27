@@ -145,7 +145,8 @@ output reset rst;
 bit test; // Some random signal bit, could be pulled from anywhere
 
 clock clk = clock(test, "rising"); // Makes a rising edge clock
-reset rst = reset(test, "low"); // Makes an active-low reset
+// Makes an active-low reset, must have a defined clock if it is not async
+reset rst = reset(test, "low", clk);
 reset rst_a = reset(test, "high", "async"); // Makes an active-high, async reset
 
 // Any clock or reset cannot be used as a normal signal until it is converted
