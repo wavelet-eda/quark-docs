@@ -113,6 +113,7 @@ module my_nested_module [
     e = my_parameterized_module(temp1, temp2);
 }
 
+// ??? I am really torn on this syntax rn, I can play with this
 // // The collection of inputs or outputs that make up a module also form an
 // // implicitly defined type and can be used inline in code
 // module my_typed_module2 (
@@ -141,15 +142,54 @@ module my_nested_module [
 //     e = my_simple_module(WIDTH, temp_outputs1.c, temp_outputs2.c);
 // }
 
-// You can add state to modules through registers or latches, which require a
-// clock and an optional reset
-module my_state_module (
-    param bit [32] WIDTH,
-    input bit clk, rst,
-    input bit [WIDTH] a, b,
-    output bit [WIDTH] c,
-) {
-    reg bit state_reg(clk, rst);
+// Before explaining how stateful elements like registers or latches work,
+// clock and reset signals need to be explained first. These signals are single
+// bit signals that make use of of the clock and reset keywords. For instance
+// you write the following in a module, as one of the inputs or outputs of the 
+// module, or as one of the inputs/outputs of an interface.
+
+// Just normal signals in a module
+clock clk; // You don't need to type 'bit' and it is invalid to add it
+reset rst;
+
+// Ports
+input clock clk;
+output reset rst;
+
+// Of particular note, you cannot use clock and reset as types in functions,
+// structs, or enums, since they really only belong in the stateful logic
+// of a module.
+
+// When you use a clock or reset wire at a register or latch you do not manually
+// declare the clock edge or reset polarity. That is instead an attribute of the
+// clock or reset signal. If the clock or reset is used at the top level then
+// the edge/polarity is the responsibility of the simulator or synthesis
+// environment to define, but if you want to derive the clock or reset signal
+// from an existing signal then you can use the clock or reset keywords as well.
+
+bit test; // Some random signal bit, could be pulled from anywhere
+
+clock clk = clock(test, "rising"); // Makes a rising edge clock
+reset rst = reset(test, "low"); // Makes an active-low reset
+reset rst_a = reset(test, "high", "async"); // Makes an active-high, async reset
+
+// Any clock or reset cannot be used as a normal signal until it is converted
+// back with the 'signal' keyword
+
+bit a = signal(rst_a);
+
+// Actually adding registers to a module is done by using the 'reg' keyword in
+// front of another type
+module my_state_module [bit [32] WIDTH] {
+    input clock clk;
+    input reset rst;
+    input bit [WIDTH] a, b;
+    output bit [WIDTH] c;
+
+    // Explicitly define the reset value (how you create set/reset behavior),
+    // but you have to set it to a constant, not another signal in the module
+    reg bit state_reg_default(clk, rst, 'b1);
+    reg bit state_reg(clk, rst); // Reset defaults to zero
     reg bit value_reg(clk); // Optional reset
     c = a + b;
 
@@ -164,21 +204,21 @@ struct my_struct_t {
     bit [8] stuff;
 }
 
-module my_state_struct_module (
-    param bit [32] WIDTH,
-    input bit clk, rst,
-    input bit [WIDTH] a, b,
-    output bit [WIDTH] c,
-) {
-    reg my_struct_t my_struct(clk, rst); // You can do the whole struct at once
+module my_state_struct_module [bit [32] WIDTH] {
+    
+    input clock clk;
+    input reset rst;
+    input bit [WIDTH] a, b;
+    output bit [WIDTH] c;
 
-    // You can label the fields specifically
-    reg my_struct_t my_struct_specific {
-        reg state(clk, rst);
-        reg my_value(clk);
-        // If you don't label a field it is not assigned a register and behaves
-        // like a normal variable
-    }
+    // Resets the struct to all zeros
+    reg my_struct_t my_struct(clk, rst);
+
+    // You can label the fields specifically for their default values
+    // This example resets state and stuff specifically but does not reset
+    // my_value. Because of this approach you cannot divide a single register
+    // between different clocks (that is a horrific idea).
+    reg my_struct_t my_struct_specific(clk, rst, {state: 'h0, stuff: 'h1});
 
     my_struct_specific.state = a;
     my_struct_specific.value = b;
@@ -187,35 +227,20 @@ module my_state_struct_module (
 }
 
 // You can also define outputs as registers too
-module my_incr_module (
-    param bit [32] WIDTH,
-    input bit clk, rst,
-    input bit [WIDTH] a,
-    output reg bit [WIDTH] b(clk, rst),
-) {
+module my_incr_module [bit [32] WIDTH] {
+    
+    input clock clk;
+    input reset rst;
+    input bit [WIDTH] a;
+    output reg bit [WIDTH] b(clk, rst);
+    output reg bit [WIDTH] c(clk, rst);
+
     b = a + 'b1;
+    // Retrieving the value of any register results in the current value of the
+    // register, not the newly assigned value from the previous line. This
+    // enforces the behavior of registers while also preventing the need for
+    // multiple different kind of assignment operators
+    c = b + 'b1;
 }
 
-// If you want to assign to a value in the past, say if you have two modules
-// that you need to stitch their inputs and outputs to each other respectively,
-// then you can use future assignments. You can get combinational loops with 
-// this really easily so a variety of warnings will be issued depending on how
-// they are used.
-module my_state_struct_module (
-    param bit [32] WIDTH,
-    input bit clk, rst,
-    output bit [WIDTH] stage1, stage2,
-) {
-    future bit [WIDTH] stage2_output;
-
-    bit [WIDTH] stage1_output = my_incr_module(WIDTH, stage2_output);
-
-    // You cannot assign to a future value in an if-statement or multiple times
-    // and it must appear in the same scope, not above or below. Future
-    // assigments can be put in an if-statement controlled by parameters but
-    // it has to resolve to a single assignment
-    stage2_output = my_incr_module(WIDTH, stage1_output);
-
-    stage1 = stage1_output;
-    stage2 = stage2_output;
-}
+// See updated future syntax in control_flow.qk
