@@ -166,3 +166,6 @@ future (bit a1, bit a2) {
 
 // You also use square brackets to handle parameters, for loops work 
 // exclusively with iterators, and you 
+
+// Runtime assertions that depend on signals can be 'caught' using try/catch
+// blocks that can recieve a simple id for which assertion failed

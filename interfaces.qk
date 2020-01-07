@@ -91,3 +91,67 @@ interface my_nested_default_intf {
     input some_struct_with_default_t s;
     output my_non_default_intf b = {valid: 'b0, data: 'b0, ready_n: 'b1};
 }
+
+// Interfaces are of course only useful when used with modules, so we first go
+// over the syntax to have a module accept an interface. We are going to define
+// a clearly useful interface, data_stream, with some parameters and default
+// values to provide depth to this example
+
+interface data_stream_intf [bit [32] W] {
+    output bit valid = 'b0;
+    output bit [W] data = 'b0;
+    input bit ready = 'b0;
+}
+
+// First we describe a module that takes a data stream input and produces a data
+// stream output
+module stream_module [bit [32] W] {
+    // Remember to fulfill the interface parameters when declaring it
+    input data_stream_intf [W] stream_in;
+    output data_stream_intf [W] stream_out;
+
+    // The ready signals goes 'backwards' so we need a future statement to
+    // handle it
+    future (bit ready_in) {
+        bit valid_in;
+        bit [W] data_in;
+        // Here the stream in interface is called
+        valid_in, data_in = stream_in(ready_in);
+    // Here we 'call' the stream out interface to fulfill its need for data
+    // and the valid signal, and it gives us the ready signal we need to
+    // finish our future statement
+    } (stream_out(valid_in, data_in + 'b1));
+}
+
+// Now if we want to connect two of these stream modules together in another
+// module we need to 
+module double_stream_module [bit [32] W] {
+    input data_stream_intf [W] stream_in;
+    output data_stream_intf [W] stream_out;
+
+    // We can get a stream out from the module, but if we want to modify the
+    // stream we have to fully deconstruct and reconstruct the stream
+    data_stream_intf [W] stream_mid = new stream_module [W] (stream_in);
+
+    // Again we can pass the stream to another module that would accept it,
+    // but we are unable to modify the stream in the process
+    stream_out = new stream_module [W] (stream_mid);
+}
+
+// There are specific semantics for the ownership of interfaces and how they
+// can be both created and destroyed by modules that take them as inputs or
+// outputs 
+module stream_ownership_module [bit [32] W] {
+    input data_stream_intf [W] stream_in;
+    output data_stream_intf [W] stream_out;
+
+    // This is an interface but we cannot access it's value yet nor can we pass
+    // it as an input interface to another module since it hasn't been assigned
+    // to yet
+    data_stream_intf [W] stream_custom;
+
+    // Now that we have assigned to the interface through a module that produces
+    // it, we can access the 
+    stream_custom = new stream_module [W] (stream_in);
+
+}

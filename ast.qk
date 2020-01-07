@@ -14,4 +14,19 @@ of the the following
 - struct ... [] {}
 - enum ... [] {}
 
+Valid Type qualifiers:
+
+bit NAME
+bit [SIZE] NAME
+bit [MSB:LSB] NAME
+
+ARRAY_SIZE := any number (including zero) of [SIZE]
+
+bit [1] ARRAY_SIZE NAME
+bit [SIZE] ARRAY_SIZE NAME
+bit [MSB:LSB] ARRAY_SIZE NAME
+
+TYPE NAME
+TYPE ARRAY_SIZE NAME
+
 */
