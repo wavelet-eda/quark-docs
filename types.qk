@@ -1,5 +1,47 @@
 /*
 Quark Type Documentation (*.qk):
+//Sumable.qk
+trait Sumable[T] {
+    def pure(): T;
+    def sum(T): Int;
+}
+
+//Vector3.qk
+type Vector3 {
+    Int x;
+    Int y;
+    Int z;
+}
+
+implement trait Sumable[Vector3] {
+    def sum(Vector3 v): Int {
+        return v.x + v.y + v.z;
+    }
+} 
+
+type Vector2 {
+    Int x;
+    Int y;
+}
+
+implement  Sumable[Vector2] {
+    def pure(): Vector2 {
+        return {x = 0, x = 1}
+    }
+
+    def sum(Vector3 v): Int {
+        return v.x + v.y + v.z;
+    }
+} 
+
+
+//if there exists a Sumable for type T, then the following function is valid:
+def multiplySumable[Sumable[T]](Int i): T {
+    return pure() * i;
+}
+
+doubleSum(vector)
+
 
 Quark supports various types for vectors/arrays/aliases/enums/structs/composite 
 types

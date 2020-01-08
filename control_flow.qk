@@ -24,7 +24,7 @@ for (bit [32] i in range(0, 23, 1)) {
     // start (inclusive), stop (exclusive), skip
 }
 
-for (bit [32] i in range(23, 0, 1)) {
+for (i in range(23, 0, 1)) {
     // Also works in reverse
 }
 

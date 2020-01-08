@@ -6,13 +6,43 @@ exception that you can parameterize functions.
 */
 
 // You write a function like this
-function bit [8] add(bit [8] a, b) {
+def add(Bit[8] a, b): Bit[8] {
     return a + b; // You just return like normal
 }
 
+// Functions can have multiple returns (woooooowwww)
+def add(Bit[8] a, b): (Bit[8], Bit[8]) {
+    return a + b, b - a; // You just return like normal
+}
+
+// Those returns can be named
+def add(Bit[8] a, b): (Bit[8] x, Bit[8] y) {
+    return a + b, b - a; // You just return like normal
+}
+
+// Those returns can be named
+def add(Bit[8] a, b): (Bit[8] x, Bit[8] y) {
+    return {
+        x = a + b, 
+        y = b - a
+    }
+}
+
+//TODO: ADD Size type
+//TODO: Type naming - types CamelCase, values camelCase, params SNAKE_CASE
 // You can also parameterize a function
-function bit [W] add [bit [32] W](bit [W] a, b) {
+function add [Size w](bit [w] a, b): Bit[W] {
     return a + b;
+}
+
+function add[w](bit [w] a, b): Bit[W] {
+    return a + b;
+}
+
+
+
+def myFunc[Int I, Size S, W](): Bit[W], Bit[32]{
+    
 }
 
 // Any fields passed to the struct are completely "copied" so that modifications
