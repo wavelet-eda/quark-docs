@@ -1,0 +1,67 @@
+/*
+Quark Parameter Documentation (*.qk):
+
+Quark supports all logical and defined types for parameters but also adds native
+support for strings, arbitrary sized arrays, C floats/doubles, and Types
+*/
+
+// Strings are handled just like C, except for there isn't a null-character
+string a = "test"; // Valid indices are 0 through 3
+
+// Strings can asked what their length is, it will return a bit [32]
+bit [32] l = length(a);
+
+// When you index a string it returns a bit [8]
+bit [8] c = a[0]; 
+
+// TODO: Someone needs to talk me into Unicode Emoji Support, but I want to
+// deeply dissuade someone from using non-ASCII characters in the parameter
+// system
+
+// Arbitrarily sized arrays are supported 
+bit [8] arb_array []; // Array is of arbitrary size
+
+// You can ask the size of an array the same way
+bit [32] arrayl = length(arb_array);
+
+// An abritrarily sized array needs to be assigned or passed to a design-unit
+// as a defined size array
+// TODO: Explain how parameters are passed to things
+
+// Floats and doubles work just like C
+float float_test = 0.0f;
+double double_test = 0.0;
+
+// TODO: Walk through all the methods that float/double conversions and
+// floating-point math operations
+
+// You can also define a type parameter as such
+type T = bit [32];
+type A = bit [32]:[3]; // Array type notation
+typedef bit [23] my_bits_t;
+type S = my_bits_t;
+
+// In the middle of logic you can also declare a parameter, if you want to 
+// compute something for say the WIDTH of a bit-vector or array. Note that
+// any values used to compute the parameter must be themselves parameters
+// or compile-time fixed values, and any functions invoked to compute the
+// parameter must be pure and only take parameter-equivalents as arguments
+parameter bit [32] A = 5;
+bit [A] stuff = 'h5;
+
+// I don't like this approach but idk on what the right approach is
+
+    // // You can also ask what the type is of a normal variable as well (useful for
+    // // abstract structs as it tells you the actual struct)
+    // abstract struct my_abstract_t {
+    //     bit [4] parent_stuff;    
+    // }
+
+    // struct my_concrete_t : my_abstract_t {
+    //     bit [4] child_stuff;
+    // }
+
+    // my_concrete_t con_st;
+    // my_abstract_t abs_st = con_st;
+
+    // type AB = typeof(abs_st); // AB should be my_concrete_t
