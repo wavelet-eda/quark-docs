@@ -1,1 +1,10 @@
 site_name: My Docs
+theme: readthedocs
+nav:
+  - Working with Types:
+    - Introduction: types/intro.md
+    - Built In Types: types/built-in.md
+    - Structs: types/structs.md
+    - Enums: types/enums.md
+    - Traits: types/traits.md
+    - Type Inference: types/type-inference.md
