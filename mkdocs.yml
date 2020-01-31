@@ -6,5 +6,6 @@ nav:
     - Built In Types: types/built-in.md
     - Structs: types/structs.md
     - Enums: types/enums.md
+    - Futures: types/futures.md
     - Traits: types/traits.md
     - Type Inference: types/type-inference.md
