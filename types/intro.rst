@@ -1,11 +1,13 @@
-# The Quark Type System
+The Quark Type System
+=====================
 
 Quark's goals are to bring high level abstractions to hardware development with
 zero costs. To acheive this goal, Quark has a sophisticated type system which
 allows polymorphic programming. Quark's type system draws inpiration from other
 zero cost type systems like Rust and Haskell.
 
-## Types
+Types
+-----
 
 Quark has 4 basic catagories of types, `struct`, `enum`, `trait`, and `module`.
 Future versions of Quark will support a `function` type. If you've written
@@ -13,19 +15,20 @@ verilog before, you are familiar with the basic concepts of structs, enums,
 and modules. The rest of this section will discuss the type system in
 greater detail.
 
-## Parameters
+Parameters
+----------
 
 Like in Verilog, Quark has two types of variables: Parameters and Signals.
 Unlike Verilog, Quark considers Parameters to be part of the type system.
-This means that a `Bit[32]` is a different type than `Bit[16]`. This helps
-ensure the compiler can catch incorrect code before the expensive synthesis
-step.
+This means that a `Bit[32]` is a different type than `Bit[16]`. T
+his helps ensure the compiler can catch incorrect code before the expensive
+synthesis step.
 
-Quark also has two kinds of parameter: _Type Paramteres_ and _Value
-Parameters_. Value Parameters are very similar to Parameters in verilog.
+Quark also has two kinds of parameter: *Type Paramteres* and *Value
+Parameters*. Value Parameters are very similar to Parameters in verilog.
 Type Parameters are more similar to generics in software languages. Type
 Parameters allow structs, enums, functions, and modules to be written to
-be generic accross multiple signal types. This allows code to be reused 
+be generic accross multiple signal types. This allows code to be reused
 more often.
 
 Importantly, Value Parameters also have types. This means that the type
