@@ -115,6 +115,22 @@ to it, you must use an explicit param:
 In this example there's no way for Quark to know how to calculate the inverse
 of ``clog2Up``.
 
+Another case where implicit parameters cannot be used is when a parameter value
+depends on the outcome of a branch:
+::
+
+    def foobar(Bit[IN_SIZE] a): Bit[SIZE] {
+        if IN_SIZE > 16 {
+            return 32'b0;
+        } else {
+            return 16'b0;
+        }
+    }
+
+This example fails to compile as type inference could cause confusing execution
+order changes. Instead, the output size of the function should be determined
+directly by an explicit param.
+
 In summary, if you need complex param calculations or non-declarative param
 constraints you must use explicit params. Otherwise, use implicit params. Since
 type params can only ever have declarative constraints and cannot appear in
