@@ -8,15 +8,15 @@ Welcome to Quark's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Types:
+   :caption: Types
 
    types/intro.rst
-..    types/built-in.md
-..    types/structs.md
-..    types/enums.md
-..    types/futures.md
-..    types/traits.md
-..    types/modules.md
-..    types/type-inference.md
+   types/built-in.rst
+   types/structs.rst
+   types/enums.rst
+   types/futures.rst
+   types/traits.rst
+   types/modules.rst
+   types/type-inference.rst
 
 

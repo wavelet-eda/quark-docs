@@ -1,1 +1,2 @@
-# Trait Types
+Trait Types
+===========

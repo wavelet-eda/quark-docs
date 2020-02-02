@@ -1,1 +1,2 @@
-# Modules as Types
+Modules as Types
+================

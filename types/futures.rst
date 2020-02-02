@@ -1,3 +1,4 @@
-# Futures
+Futures
+=======
 
 Futures are cool
