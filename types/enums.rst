@@ -71,7 +71,7 @@ The standard library provides serveral generic enums which may be useful in
 your hardware.
 
 Maybe
------
+^^^^^
 
 The `Maybe` enum is useful in cases where a signal may or may not be available.
 `Maybe` fills a similar role to `null` in software languages while ensuring
@@ -86,3 +86,17 @@ there are no undefined states. Maybe is defined like this:
 Thus, a `Maybe` signal is either nothing or just a `T` signal. This is
 especially useful as an output of modules or functions which sometimes produce
 valid output and sometimes do not.
+
+Either
+^^^^^^
+
+The ``Either`` enum is useful when a signal may be one type or another.
+Using ``Either`` can help avoid confusing branching and allows for better
+code reuse.
+::
+
+    enum Either!(type LEFT, type RIGHT) {
+        Left(LEFT);
+        Right(RIGHT);
+    }
+
