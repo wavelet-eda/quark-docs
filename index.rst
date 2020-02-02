@@ -18,5 +18,6 @@ Welcome to Quark's documentation!
    types/traits.rst
    types/modules.rst
    types/type-inference.rst
+   types/types-as-constraints.rst
 
 
