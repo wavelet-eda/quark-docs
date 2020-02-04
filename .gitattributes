@@ -1,0 +1,2 @@
+* text eol=lf
+#this is needed because doc8 on windows doesn't understand crlf
